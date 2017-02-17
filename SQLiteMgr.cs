@@ -3,6 +3,7 @@ using System.Collections;
 using System.Data;
 using Mono.Data.SqliteClient;
 using System.Collections.Generic;
+using System;
 
 /// <summary>
 /// SQLite DB 와 통신 하기 위한 Class
@@ -205,32 +206,40 @@ public class SQLiteMgr : MonoBehaviour
             return -1;
         }
 
-        m_DBCommand = m_DBConnection.CreateCommand();
+        try
+        {
+            m_DBCommand = m_DBConnection.CreateCommand();
 
-        // WAL = write ahead logging, very huge speed increase
-        m_DBCommand.CommandText = "PRAGMA journal_mode = WAL;";
-        m_DBCommand.ExecuteNonQuery();
+            // WAL = write ahead logging, very huge speed increase
+            m_DBCommand.CommandText = "PRAGMA journal_mode = WAL;";
+            m_DBCommand.ExecuteNonQuery();
 
-        // journal mode = look it up on google, I don't remember
-        m_DBCommand.CommandText = "PRAGMA journal_mode";
-        m_DBReader = m_DBCommand.ExecuteReader();
+            // journal mode = look it up on google, I don't remember
+            m_DBCommand.CommandText = "PRAGMA journal_mode";
+            m_DBReader = m_DBCommand.ExecuteReader();
 #if UNITY_EDITOR
-        if (m_DBReader.Read())
-            Debug.Log("SQLiter - WAL value is: " + m_DBReader.GetString(0));
-        m_DBReader.Close();
+            if (m_DBReader.Read())
+                Debug.Log("SQLiter - WAL value is: " + m_DBReader.GetString(0));
+            m_DBReader.Close();
 #endif
-        // more speed increases
-        m_DBCommand.CommandText = "PRAGMA synchronous = OFF";
-        m_DBCommand.ExecuteNonQuery();
+            // more speed increases
+            m_DBCommand.CommandText = "PRAGMA synchronous = OFF";
+            m_DBCommand.ExecuteNonQuery();
 
-        // and some more
-        m_DBCommand.CommandText = "PRAGMA synchronous";
-        m_DBReader = m_DBCommand.ExecuteReader();
+            // and some more
+            m_DBCommand.CommandText = "PRAGMA synchronous";
+            m_DBReader = m_DBCommand.ExecuteReader();
 #if UNITY_EDITOR
-        if (m_DBReader.Read())
-            Debug.Log("SQLiter - synchronous value is: " + m_DBReader.GetInt32(0));
-        m_DBReader.Close();
+            if (m_DBReader.Read())
+                Debug.Log("SQLiter - synchronous value is: " + m_DBReader.GetInt32(0));
+            m_DBReader.Close();
 #endif
+        }
+        catch (Exception e)
+        {
+            Debug.Log(e);
+            return -1;
+        }
 
         #endregion SQLite 기본 속성 정의
 
@@ -277,13 +286,23 @@ public class SQLiteMgr : MonoBehaviour
             return "";
         }
 
-        m_DBCommand.CommandText = commandText;
-        IDataReader reader = m_DBCommand.ExecuteReader();
-        int cnt = reader.FieldCount;
         string value = "0";
-        while (reader.Read())
+
+        try
         {
-            value = reader.GetString(0);
+            m_DBCommand.CommandText = commandText;
+            IDataReader reader = m_DBCommand.ExecuteReader();
+            int cnt = reader.FieldCount;
+
+            while (reader.Read())
+            {
+                value = reader.GetString(0);
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.Log(e);
+            value = "";
         }
 
         DisConnect();
@@ -308,8 +327,17 @@ public class SQLiteMgr : MonoBehaviour
             return -2;
         }
 
-        m_DBCommand.CommandText = commandText;
-        m_DBCommand.ExecuteNonQuery();
+        try
+        {
+            m_DBCommand.CommandText = commandText;
+            m_DBCommand.ExecuteNonQuery();
+        }
+        catch (Exception e)
+        {
+            Debug.Log(e);
+            DisConnect();
+            return -1;
+        }
 
         DisConnect();
 
